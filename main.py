@@ -4,7 +4,9 @@ from dotenv import load_dotenv
 import os
 from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
 from database import init_db
-from handlers import start_command, random_word, button_handler
+from handlers import start_command, button_handler
+from data import data_manager
+
 
 load_dotenv()
 
@@ -18,7 +20,6 @@ async def main():
     application = ApplicationBuilder().token(BOT_TOKEN).build()
 
     application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CommandHandler("random", random_word))
     application.add_handler(CallbackQueryHandler(button_handler))
 
     await application.run_polling()
