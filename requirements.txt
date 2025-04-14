@@ -1,0 +1,7 @@
+asyncpg
+sqlalchemy
+python-telegram-bot
+python-dotenv
+uvicorn
+nest_asyncio
+requests
