@@ -7,6 +7,18 @@ import httpx
 
 data_manager = DataManager()
 
+async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    keyboard = [
+        [InlineKeyboardButton('Получить случайное слово', callback_data='random_word')],
+        [InlineKeyboardButton('Прочитать текст', callback_data='read_text')],
+        [InlineKeyboardButton('Посмотреть незнакомые слова', callback_data='view_unknown_words')],
+        [InlineKeyboardButton('Помощь', callback_data='help')],
+        [InlineKeyboardButton('Викторина', callback_data='quiz')],
+        [InlineKeyboardButton('Выход', callback_data='exit')]
+    ]
+    reply_markup = InlineKeyboardMarkup(keyboard)
+    await update.callback_query.message.reply_text('Выберите опцию:', reply_markup=reply_markup)
+
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session = await get_db()  
     await data_manager.load_words_from_db(session)  
@@ -21,9 +33,6 @@ async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     ]
     reply_markup = InlineKeyboardMarkup(keyboard)
     await update.message.reply_text('Привет! Выбери опцию:', reply_markup=reply_markup)
-
-from telegram import Update, InlineKeyboardButton, InlineKeyboardMarkup
-from telegram.ext import ContextTypes
 
 async def random_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
     random_entry = data_manager.get_random_word()
@@ -50,52 +59,49 @@ async def add_unknown_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
     current_word = context.user_data.get('current_word')
     current_translation = context.user_data.get('current_translation')
     
-    if current_word:
-        data_manager.add_unknown_word(current_word, current_translation)
-        await update.callback_query.answer()
+    if current_word and current_translation:
+        user_id = update.effective_user.id  
+        data_manager.add_unknown_word(user_id, current_word)  
+        await update.callback_query.answer()  
         await update.callback_query.message.reply_text(f"Слово '{current_word}' добавлено в незнакомые слова.")
     else:
         await update.callback_query.answer()
         await update.callback_query.message.reply_text("Нет слова для добавления.")
+    
+    await main_menu(update, context)
+
         
-async def add_unknown_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    random_entry = data_manager.get_random_word()
-    if random_entry:
-        await update.callback_query.answer()
-        word = random_entry['word']
-        translation = random_entry['translation']
-        
-        session = await get_db()
-        await data_manager.add_word_to_db(session, word, translation)
-        
-        await update.callback_query.message.reply_text(f"Слово '{word}' добавлено как незнакомое.")
+async def view_unknown_words(update: Update, context: ContextTypes.DEFAULT_TYPE):
+    unknown_words = ', '.join(data_manager.get_known_words())
+    if unknown_words:
+        await update.callback_query.message.reply_text(f"Незнакомые слова: {unknown_words}")
     else:
-        await update.callback_query.answer()
-        await update.callback_query.message.reply_text("Нет доступных слов для добавления.")
+        await update.callback_query.message.reply_text("Нет незнакомых слов.")
+    
 
 async def button_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     query = update.callback_query
     await query.answer()
 
+    if query.data == 'add_unknown_word':
+        await add_unknown_word(update, context)
     if query.data == 'read_text':
         text = data_manager.get_random_text()['text']  
         await query.edit_message_text(text=text)  
+        await main_menu(update, context)  
     elif query.data == 'view_unknown_words':
-        unknown_words = ', '.join(data_manager.get_known_words())
-        if unknown_words:
-            await query.edit_message_text(text=f"Незнакомые слова: {unknown_words}")
-        else:
-            await query.edit_message_text(text="Нет незнакомых слов.")
+        await view_unknown_words(update, context)
     elif query.data == 'help':
         await query.edit_message_text(text="Вы можете читать тексты и добавлять незнакомые слова.")
+        await main_menu(update, context)  
     elif query.data == 'exit':
         await query.edit_message_text(text="Вы вышли из операции.")
+        await main_menu(update, context)  
     elif query.data == 'quiz':
         await quiz_handler(update, context)
     elif query.data == 'random_word':
         await random_word(update, context)
-    elif query.data == 'add_unknown_word':
-        await add_unknown_word(update, context)
+    await main_menu(update, context)
 
 async def fetch_quiz_question():
     url = "https://opentdb.com/api.php?amount=1&type=multiple" 
@@ -131,3 +137,4 @@ async def quiz_handler(update: Update, context: ContextTypes.DEFAULT_TYPE):
     else:
         logging.warning("update.callback_query is None")
         await update.callback_query.message.reply_text("Не удалось получить вопрос викторины.")
+    await main_menu(update, context)

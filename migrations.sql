@@ -1,0 +1,6 @@
+CREATE TABLE Word (
+    id SERIAL PRIMARY KEY,
+    user_id INTEGER NOT NULL,
+    word VARCHAR(255) NOT NULL,
+    translation VARCHAR(255) NOT NULL
+);

@@ -5,9 +5,13 @@ from sqlalchemy.future import select
 class DataManager:
     def __init__(self):
         self.texts = [
-            {"text": "我要去北京旅游，你觉得什么时候去最好？九月去北京旅游最好。为什么？九月的北京天气不冷也不热。"},
-            {"text": "你喜欢什么运动？我最喜欢踢足球。下午我们一起去踢足球吧。好啊！"}
+            {"text": "我要去北京旅游，你觉得什么时候去最好？九月去北京旅游最好。"},
+            {"text": "你很少生病，是不是喜欢运动？是啊，我每天早上都要出去跑步。你每天几点起床？我每天六点起床。"},
+            {"text": "吃药了吗？现在身体怎么样？吃了。现在好多了。"},
+            {"text": "大卫今年多大？二十多岁。他多高？一米八几。"},
+            {"text": "张老师星期六也不休息啊？是啊，他这几天很忙，没有时间休息。"}
         ]
+
         self.known_words = []  
         self.words = []  
         self.used_words = []  
@@ -30,6 +34,14 @@ class DataManager:
             self.words = db_words 
             self.known_words = self.words  
 
+    def add_unknown_word(self, user_id, word):
+        if user_id not in self.unknown_words:
+            self.unknown_words[user_id] = []
+        self.unknown_words[user_id].append(word)
+
+    def get_unknown_words(self, user_id):
+        return self.unknown_words.get(user_id, [])
+
     def get_known_words(self):
         return [word['word'] for word in self.known_words]  
 
@@ -48,12 +60,4 @@ class DataManager:
         new_word = Word(word=word, translation=translation)
         session.add(new_word)
         await session.commit()
-        self.known_words.append({"word": word, "translation": translation})  
-
-    def add_unknown_word(self, user_id, word):
-        if user_id not in self.unknown_words:
-            self.unknown_words[user_id] = []
-        self.unknown_words[user_id].append(word)
-
-    def get_unknown_words(self, user_id):
-        return self.unknown_words.get(user_id, [])
+        self.known_words.append({"word": word, "translation": translation})

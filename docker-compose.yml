@@ -9,6 +9,7 @@ services:
       - db
     ports:
       - "8000:8000"
+    command: ["python", "main.py"]  
 
   db:
     image: postgres:13
@@ -18,3 +19,5 @@ services:
       POSTGRES_PASSWORD: BjXqSHmx
     ports:
       - "5432:5432"
+    volumes:
+      - ./migrations.sql:/dir3/migrations.sql
