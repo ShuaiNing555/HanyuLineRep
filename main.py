@@ -1,28 +1,49 @@
-import asyncio
-import nest_asyncio
-from dotenv import load_dotenv
 import os
-from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler
+import logging
+from dotenv import load_dotenv
 from database import init_db
-from handlers import start_command, button_handler
-from data import data_manager
+from handlers import start_command, button_handler, random_word
+from sqlalchemy import create_engine
+from sqlalchemy.orm import sessionmaker
+from telegram.ext import ApplicationBuilder, CommandHandler, CallbackQueryHandler, MessageHandler, filters
 
+logging.basicConfig(
+    format='%(asctime)s - %(name)s - %(levelname)s - %(message)s',
+    level=logging.INFO
+)
 
 load_dotenv()
-
 BOT_TOKEN = os.getenv("BOT_TOKEN")
+DATABASE_URL = os.getenv("DATABASE_URL")
 
-nest_asyncio.apply()
+if not BOT_TOKEN or not DATABASE_URL:
+    logging.error("BOT_TOKEN или DATABASE_URL не установлены в переменных окружения.")
+    exit(1)
 
-async def main():
-    await init_db()
-    
-    application = ApplicationBuilder().token(BOT_TOKEN).build()
+engine = create_engine(DATABASE_URL, echo=True)
+SessionLocal = sessionmaker(bind=engine)
 
-    application.add_handler(CommandHandler("start", start_command))
-    application.add_handler(CallbackQueryHandler(button_handler))
+def get_db():
+    db = SessionLocal()
+    try:
+        yield db
+    finally:
+        db.close()
 
-    await application.run_polling()
+def main():
+    try:
+        init_db()  
+
+        application = ApplicationBuilder().token(BOT_TOKEN).build()
+
+        application.add_handler(CommandHandler("start", start_command))
+        application.add_handler(CommandHandler("random", random_word))
+        application.add_handler(CallbackQueryHandler(button_handler))
+
+        logging.info("Бот запущен и готов к работе.")
+        application.run_polling() 
+    except Exception as e:
+        logging.error(f"Произошла ошибка: {e}")
 
 if __name__ == "__main__":
-    asyncio.run(main())
+    main()  

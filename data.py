@@ -1,49 +1,59 @@
 import random
-from models import Word
+from models import Word  
 from sqlalchemy.future import select
 
 class DataManager:
     def __init__(self):
-        self.texts = [{"我要去北京旅游，你觉得什么时候去最好？九月去北京旅游最好。为什么？九月的北京天气不冷也不热。"},
-    {"你喜欢什么运动？我最喜欢踢足球。下午我们一起去踢足球吧。好啊！"}]
-        self.known_words = [] 
-        self.words = [{"word": "要", "transciption": "[yào]", "translation": "[хотеть]"},
-    {"word": "旅游", "transciption": "[lǚyóu]","translation": "[путешествовать]"},
-    {"word": "觉得", "transciption": "[juéde]","translation": "[думать]"},
-    {"word": "时候", "transciption": "[shíhou]","translation": "[время]"},
-    {"word": "最", "transciption": "[zuì]","translation": "[больше всего]"},
-    {"word": "冷", "transciption": "[lěng]","translation": "[холодный]"},
-    {"word": "热", "transciption": "[rè]","translation": "[горячий]"},
-    {"word": "运动","transciption": "[yùndòng]", "translation": "[заниматься спортом]"},
-    {"word": "下午", "transciption": "[xiàwǔ]","translation": "[после обеда]"}]  
+        self.texts = [
+            {"text": "我要去北京旅游，你觉得什么时候去最好？九月去北京旅游最好。为什么？九月的北京天气不冷也不热。"},
+            {"text": "你喜欢什么运动？我最喜欢踢足球。下午我们一起去踢足球吧。好啊！"}
+        ]
+        self.known_words = []  
+        self.words = []  
+        self.used_words = []  
+        self.unknown_words = {}  
 
-    def get_texts(self):
-        return self.texts
+    async def load_words_from_db(self, session):
+        result = await session.execute(select(Word))
+        db_words = [
+            {"word": "要", "transcription": "[yào]", "translation": "[хотеть]"},
+            {"word": "旅游", "transcription": "[lǚyóu]", "translation": "[путешествовать]"},
+            {"word": "觉得", "transcription": "[juéde]", "translation": "[думать]"},
+            {"word": "时候", "transcription": "[shíhou]", "translation": "[время]"},
+            {"word": "最", "transcription": "[zuì]", "translation": "[больше всего]"},
+            {"word": "冷", "transcription": "[lěng]", "translation": "[холодный]"},
+            {"word": "热", "transcription": "[rè]", "translation": "[горячий]"},
+            {"word": "运动", "transcription": "[yùndòng]", "translation": "[заниматься спортом]"},
+            {"word": "下午", "transcription": "[xiàwǔ]", "translation": "[после обеда]"}
+        ] 
+        if db_words:
+            self.words = db_words 
+            self.known_words = self.words  
+
+    def get_known_words(self):
+        return [word['word'] for word in self.known_words]  
 
     def get_random_text(self):
         return random.choice(self.texts) if self.texts else None
 
-    def get_words_from_text(self, text):
-        return text.split()  
-
-    def add_unknown_word(self, word):
-        if word not in self.known_words:
-            self.known_words.append(word)
-
-    def get_known_words(self):
-        return self.known_words
-
     def get_random_word(self):
-        return random.choice(self.words) if self.words else None
-
-    async def load_words_from_db(self, session):
-        result = await session.execute(select(Word))
-        self.words = [{"word": word.word, "transcription": "", "translation": word.translation} for word in result.scalars().all()]
-        self.known_words = self.words
+        available_words = [word for word in self.words if word not in self.used_words]
+        if available_words:
+            random_word = random.choice(available_words)
+            self.used_words.append(random_word)
+            return random_word  
+        return None  
 
     async def add_word_to_db(self, session, word, translation):
         new_word = Word(word=word, translation=translation)
         session.add(new_word)
         await session.commit()
+        self.known_words.append({"word": word, "translation": translation})  
 
-data_manager = DataManager()
+    def add_unknown_word(self, user_id, word):
+        if user_id not in self.unknown_words:
+            self.unknown_words[user_id] = []
+        self.unknown_words[user_id].append(word)
+
+    def get_unknown_words(self, user_id):
+        return self.unknown_words.get(user_id, [])
