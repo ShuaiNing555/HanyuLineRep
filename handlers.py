@@ -31,7 +31,6 @@ async def random_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
         word = random_entry['word']
         translation = random_entry['translation']
         
-        # Сохраняем текущее слово в контексте
         context.user_data['current_word'] = word
         context.user_data['current_translation'] = translation
         
@@ -48,12 +47,10 @@ async def random_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
         await update.callback_query.message.reply_text("Нет доступных слов.")
 
 async def add_unknown_word(update: Update, context: ContextTypes.DEFAULT_TYPE):
-    # Получаем текущее слово из контекста
     current_word = context.user_data.get('current_word')
     current_translation = context.user_data.get('current_translation')
     
     if current_word:
-        # Логика добавления слова в список незнакомых
         data_manager.add_unknown_word(current_word, current_translation)
         await update.callback_query.answer()
         await update.callback_query.message.reply_text(f"Слово '{current_word}' добавлено в незнакомые слова.")
