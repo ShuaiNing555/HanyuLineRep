@@ -1,0 +1,4 @@
+*.pyc
+.env
+docker-compose.yml
+Dockerfile
