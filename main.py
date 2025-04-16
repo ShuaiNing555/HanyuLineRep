@@ -16,10 +16,6 @@ load_dotenv()
 BOT_TOKEN = os.getenv("BOT_TOKEN")
 DATABASE_URL = os.getenv("DATABASE_URL")
 
-if not BOT_TOKEN or not DATABASE_URL:
-    logging.error("ОПроблема с BOT_TOKEN или DATABASE_URL.")
-    exit(1)
-
 engine = create_engine(DATABASE_URL, echo=True)
 SessionLocal = sessionmaker(bind=engine)
 
@@ -46,4 +42,4 @@ def main():
         logging.error(f"Произошла ошибка: {e}")
 
 if __name__ == "__main__":
-    main()  
+    main()

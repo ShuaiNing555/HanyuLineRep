@@ -1,0 +1,32 @@
+services:
+  app:
+    build: .
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+    ports:
+      - "8000:8000"
+
+  db:
+    image: postgres:13
+    environment:
+      POSTGRES_DB: Lang_bot
+      POSTGRES_USER: postgres
+      POSTGRES_PASSWORD: BjXqSHmx
+    ports:
+      - "5432:5432"
+
+  celery:
+    build: .
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    depends_on:
+      - db
+    command: celery -A celery_app worker --loglevel=info
+
+import random
