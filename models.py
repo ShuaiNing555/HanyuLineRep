@@ -15,3 +15,8 @@ class UserProgress(Base):
     user_id = Column(Integer, index=True)
     word = Column(String, index=True)
     learned = Column(Boolean, default=False)
+
+class Text(Base):
+    __tablename__ = 'texts'
+    id = Column(Integer, primary_key=True, index=True)
+    content = Column(String, nullable=False)

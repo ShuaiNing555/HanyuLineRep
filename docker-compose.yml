@@ -28,5 +28,3 @@ services:
     depends_on:
       - db
     command: celery -A celery_app worker --loglevel=info
-
-import random

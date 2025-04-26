@@ -22,6 +22,7 @@ async def main_menu(update: Update, context: ContextTypes.DEFAULT_TYPE):
 async def start_command(update: Update, context: ContextTypes.DEFAULT_TYPE):
     session = await get_db()  
     await data_manager.load_words_from_db(session)  
+    await data_manager.load_texts_from_db(session)
 
     keyboard = [
         [InlineKeyboardButton('Получить случайное слово', callback_data='random_word')],

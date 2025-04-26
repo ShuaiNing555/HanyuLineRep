@@ -4,3 +4,7 @@ CREATE TABLE Word (
     word VARCHAR(255) NOT NULL,
     translation VARCHAR(255) NOT NULL
 );
+CREATE TABLE texts (
+    id SERIAL PRIMARY KEY,
+    content TEXT NOT NULL
+);
