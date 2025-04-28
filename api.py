@@ -1,38 +1,72 @@
-from fastapi import FastAPI, HTTPException
+from fastapi import FastAPI, HTTPException, Depends
+from sqlalchemy.ext.asyncio import AsyncSession
+from sqlalchemy.future import select
+from database import get_db, init_db
+from models import Word, Text
 from pydantic import BaseModel
 from typing import List
-from database import get_db
-from data import DataManager
+import random
+from contextlib import asynccontextmanager
 
-app = FastAPI()
-data_manager = DataManager()
-
-class WordModel(BaseModel):
+class WordResponse(BaseModel):
     word: str
     transcription: str
     translation: str
 
-class TextModel(BaseModel):
-    text: str
+class TextResponse(BaseModel):
+    content: str
 
-@app.get("/words", response_model=List[WordModel])
-async def get_words():
-    return data_manager.get_known_words()
+app = FastAPI()
 
-@app.post("/words", response_model=WordModel)
-async def add_word(word: WordModel):
-    async with get_db() as session:
-        await data_manager.add_word_to_db(session, word.word, word.translation)
-    return word
+@asynccontextmanager
+async def lifespan(app: FastAPI):
+    await init_db() 
+    yield 
 
-@app.get("/texts", response_model=List[TextModel])
-async def get_texts():
-    async with get_db() as session:
-        await data_manager.load_texts_from_db(session)
-        return data_manager.texts
+app = FastAPI(lifespan=lifespan)
 
-@app.post("/texts", response_model=TextModel)
-async def add_text(text: TextModel):
-    async with get_db() as session:
-        await data_manager.add_text_to_db(session, text.text)
-    return text
+@app.get("/words/random", response_model=WordResponse)
+async def get_random_word(session: AsyncSession = Depends(get_db)):
+    result = await session.execute(select(Word))
+    words = result.scalars().all()
+    if words:
+        random_word = random.choice(words)
+        return WordResponse(word=random_word.word, transcription=random_word.transcription, translation=random_word.translation)
+    raise HTTPException(status_code=404, detail="No words found")
+
+@app.get("/texts/random", response_model=TextResponse)
+async def get_random_text(session: AsyncSession = Depends(get_db)):
+    result = await session.execute(select(Text))
+    texts = result.scalars().all()
+    if texts:
+        random_text = random.choice(texts)
+        return TextResponse(content=random_text.content)
+    raise HTTPException(status_code=404, detail="No texts found")
+
+@app.get("/words", response_model=List[WordResponse])
+async def get_words(session: AsyncSession = Depends(get_db)):
+    result = await session.execute(select(Word))
+    words = result.scalars().all()
+    return [WordResponse(word=w.word, transcription=w.transcription, translation=w.translation) for w in words]
+
+@app.get("/texts", response_model=List[TextResponse])
+async def get_texts(session: AsyncSession = Depends(get_db)):
+    result = await session.execute(select(Text))
+    texts = result.scalars().all()
+    return [TextResponse(content=t.content) for t in texts]
+
+@app.post("/words", response_model=WordResponse)
+async def add_word(word: WordResponse, session: AsyncSession = Depends(get_db)):
+    new_word = Word(user_id=1, word=word.word, translation=word.translation)
+    session.add(new_word)
+    await session.commit()
+    await session.refresh(new_word)
+    return WordResponse(word=new_word.word, transcription=new_word.transcription, translation=new_word.translation)
+
+@app.post("/texts", response_model=TextResponse)
+async def add_text(text: TextResponse, session: AsyncSession = Depends(get_db)):
+    new_text = Text(content=text.content)
+    session.add(new_text)
+    await session.commit()
+    await session.refresh(new_text)
+    return TextResponse(content=new_text.content)

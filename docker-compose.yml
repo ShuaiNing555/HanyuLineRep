@@ -1,3 +1,5 @@
+version: '3.8'
+
 services:
   app:
     build: .
@@ -8,8 +10,7 @@ services:
     depends_on:
       - db
     ports:
-      - "8000:8000"
-
+      - "8000:8000"  
   db:
     image: postgres:13
     environment:
@@ -17,7 +18,7 @@ services:
       POSTGRES_USER: postgres
       POSTGRES_PASSWORD: BjXqSHmx
     ports:
-      - "5432:5432"
+      - "5432:5432" 
 
   celery:
     build: .
@@ -27,4 +28,13 @@ services:
       - .env
     depends_on:
       - db
-    command: celery -A celery_app worker --loglevel=info
+    command: celery -A celery_app worker --loglevel=info 
+
+  api:
+    build: .
+    volumes:
+      - .:/app
+    env_file:
+      - .env
+    ports:
+      - "8001:8000"  
